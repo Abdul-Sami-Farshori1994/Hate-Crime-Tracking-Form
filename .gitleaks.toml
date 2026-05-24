@@ -1,0 +1,12 @@
+title = "Hate Crime Tracking Form gitleaks config"
+
+[allowlist]
+description = "Example and test placeholders are not real secrets"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.production\.example$''',
+  '''backend/\.env\.example$''',
+  '''frontend/\.env\.example$''',
+  '''backend/tests/''',
+  '''\.github/workflows/ci\.yml''',
+]

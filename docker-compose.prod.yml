@@ -1,0 +1,24 @@
+# Production overlay — use with base compose:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+services:
+  api:
+    environment:
+      ENVIRONMENT: production
+      ALLOW_DEFAULT_USER_SEED: "false"
+      LOG_LEVEL: INFO
+      LOG_FORMAT: json
+      CONSENT_REQUIRED: ${CONSENT_REQUIRED:-false}
+      USE_COOKIE_AUTH: ${USE_COOKIE_AUTH:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      ADMIN_MFA_REQUIRED: ${ADMIN_MFA_REQUIRED:-true}
+      ACCESS_TOKEN_EXPIRE_MINUTES_ADMIN: ${ACCESS_TOKEN_EXPIRE_MINUTES_ADMIN:-15}
+    ports: []
+
+  web:
+    ports:
+      - "8080:80"
+
+  db:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
