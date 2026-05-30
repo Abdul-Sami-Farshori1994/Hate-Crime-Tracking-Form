@@ -17,6 +17,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       ADMIN_MFA_REQUIRED: ${ADMIN_MFA_REQUIRED:-true}
       ACCESS_TOKEN_EXPIRE_MINUTES_ADMIN: ${ACCESS_TOKEN_EXPIRE_MINUTES_ADMIN:-15}
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/hatecrime
     ports: []
 
   web:
@@ -26,3 +27,5 @@ services:
   db:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_USER: postgres
+      POSTGRES_DB: hatecrime

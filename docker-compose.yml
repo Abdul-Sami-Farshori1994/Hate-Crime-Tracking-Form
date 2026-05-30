@@ -32,7 +32,7 @@ services:
       # 8787 avoids stale local uvicorn instances often bound on 8000/8001
       - "8787:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/hatecrime
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/hatecrime}
       SECRET_KEY: ${SECRET_KEY:-change-me-to-a-long-random-string-for-docker}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: "30"

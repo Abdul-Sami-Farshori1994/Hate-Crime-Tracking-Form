@@ -72,6 +72,13 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec api python 
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec api python seed.py --commit
 ```
 
+If the `api` container is restarting, run seed without the entrypoint:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps --entrypoint python api seed.py --dry-run
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps --entrypoint python api seed.py --commit
+```
+
 This replaces users, form structure, all responses, and audit log with the exported snapshot.
 
 **Notes:** Use the same `SECRET_KEY` on production if admin MFA was enabled locally. Re-export and re-seed whenever local data changes.
