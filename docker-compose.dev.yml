@@ -1,5 +1,7 @@
 # Local development overlay: expose Postgres on host port 5433 (tools, Alembic from host).
-# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+version: "3.8"
 
 services:
   db:

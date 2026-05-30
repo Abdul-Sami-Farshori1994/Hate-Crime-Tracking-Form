@@ -18,21 +18,34 @@
 
 ## Docker production example
 
-Copy `.env.production.example` and set real values, then:
+Copy `.env.production.example` to `.env`, set real values, then deploy:
+
+```bash
+cp .env.production.example .env
+# Edit .env — set SECRET_KEY, POSTGRES_PASSWORD, CORS_ORIGINS, path slugs
+
+chmod +x scripts/deploy-prod.sh
+./scripts/deploy-prod.sh
+```
+
+Or manually (works on servers with **legacy** `docker-compose` or **Compose v2** `docker compose`):
 
 ```bash
 export SECRET_KEY="$(openssl rand -hex 32)"
+export POSTGRES_PASSWORD="your-strong-db-password"
 export ENVIRONMENT=production
 export CORS_ORIGINS=https://forms.example.org
 export ALLOW_DEFAULT_USER_SEED=false
 
-docker compose up -d --build
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# If you have the Compose v2 plugin instead:
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
 **Local dev with Postgres on host port 5433** (optional):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
 Production compose does **not** publish Postgres to the host by default.
@@ -96,7 +109,7 @@ Sensitive fields in log messages (passwords, Bearer tokens) are **redacted** whe
 - **Backups:** `scripts/backup-db.ps1` (host with Docker access to Postgres).
 - **Load smoke test:** `k6 run scripts/load-test/k6_submit.js` (optional k6 install).
 - **Redis rate limits (optional):** set `REDIS_URL` when running multiple API replicas.
-- **Production compose:** `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`
+- **Production compose:** `./scripts/deploy-prod.sh` or `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`
 
 ## Security notes
 

@@ -1,4 +1,5 @@
-name: hatecrime
+# Compatible with docker-compose v1 (hyphen) and Docker Compose v2 (plugin).
+version: "3.8"
 
 services:
   db:
@@ -8,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: hatecrime
     # Postgres is not published to the host by default (safer). For local tools use:
-    #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+    #   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
     volumes:
       - hatecrime_pgdata:/var/lib/postgresql/data
     healthcheck:

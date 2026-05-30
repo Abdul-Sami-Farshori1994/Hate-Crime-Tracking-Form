@@ -1,5 +1,9 @@
 # Production overlay — use with base compose:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   ./scripts/deploy-prod.sh
+# Or manually:
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+version: "3.8"
 
 services:
   api:
