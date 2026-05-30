@@ -51,6 +51,31 @@ Open http://localhost:5173 — Vite proxies API routes to port **8787** (Docker 
 
 **Important:** Stop any old local `uvicorn` on ports 8000–8001 if requests return 404 — those processes can shadow the Docker API.
 
+## Production data seed (local → production)
+
+Alembic only creates **empty tables**. To copy your full local database (form, responses, users, etc.):
+
+**1. On your PC** (after data changes, re-run export):
+
+```powershell
+cd backend
+$env:DATABASE_URL="postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/hatecrime"
+python scripts/export_seed_data.py
+```
+
+**2. Commit and deploy** `backend/data/seed/` with the app.
+
+**3. On production** (after `alembic upgrade head` / containers are up):
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec api python seed.py --dry-run
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec api python seed.py --commit
+```
+
+This replaces users, form structure, all responses, and audit log with the exported snapshot.
+
+**Notes:** Use the same `SECRET_KEY` on production if admin MFA was enabled locally. Re-export and re-seed whenever local data changes.
+
 ## Import Microsoft Form (one-time)
 
 Place export at `backend/data/microsoft_form.json`, then:

@@ -1,0 +1,12 @@
+{
+  "exported_at": "2026-05-30T14:11:43.887792+00:00",
+  "tables": {
+    "users": 2,
+    "form_pages": 11,
+    "questions": 92,
+    "question_branch_rules": 787,
+    "response_sessions": 950,
+    "responses": 45572,
+    "audit_events": 69
+  }
+}
