@@ -19,12 +19,19 @@ import argparse
 import asyncio
 import json
 import sys
-from pathlib import Path
 
 from sqlalchemy import text
 
 from database import get_session_factory
-from seed_data import CLEAR_TABLES, MANIFEST_FILE, SEED_DIR, SEED_TABLES, load_json_rows, seed_table_path
+from seed_data import (
+    CLEAR_TABLES,
+    MANIFEST_FILE,
+    SEED_DIR,
+    SEED_TABLES,
+    load_json_rows,
+    prepare_seed_row,
+    seed_table_path,
+)
 
 BATCH_SIZE = 500
 
@@ -75,18 +82,9 @@ async def insert_rows(session, table: str, rows: list[dict]) -> None:
     param_sql = ", ".join(f":{c}" for c in columns)
     stmt = text(f"INSERT INTO {table} ({col_sql}) VALUES ({param_sql})")
 
-    def prepare(row: dict) -> dict:
-        out: dict = {}
-        for key, value in row.items():
-            if isinstance(value, (dict, list)):
-                out[key] = json.dumps(value, ensure_ascii=False)
-            else:
-                out[key] = value
-        return out
-
     for i in range(0, len(rows), BATCH_SIZE):
         for row in rows[i : i + BATCH_SIZE]:
-            await session.execute(stmt, prepare(row))
+            await session.execute(stmt, prepare_seed_row(row))
 
 
 async def reset_sequences(session) -> None:

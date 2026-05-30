@@ -36,6 +36,9 @@ CLEAR_TABLES: tuple[str, ...] = (
     "users",
 )
 
+UUID_COLUMNS = frozenset({"session_id"})
+JSON_COLUMNS = frozenset({"options", "detail"})
+
 
 class SeedJSONEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
@@ -46,6 +49,24 @@ class SeedJSONEncoder(json.JSONEncoder):
         if isinstance(obj, Enum):
             return obj.value
         return super().default(obj)
+
+
+def coerce_seed_value(column: str, value: Any) -> Any:
+    """Convert JSON export values to types asyncpg expects."""
+    if value is None:
+        return None
+    if column in UUID_COLUMNS and isinstance(value, str):
+        return UUID(value)
+    if column.endswith("_at") or column in {"expires_at", "revoked_at", "locked_until"}:
+        if isinstance(value, str):
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if column in JSON_COLUMNS and isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return value
+
+
+def prepare_seed_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {key: coerce_seed_value(key, value) for key, value in row.items()}
 
 
 def seed_table_path(table: str) -> Path:
