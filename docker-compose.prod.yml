@@ -14,8 +14,7 @@ services:
       LOG_FORMAT: json
       CONSENT_REQUIRED: ${CONSENT_REQUIRED:-false}
       USE_COOKIE_AUTH: ${USE_COOKIE_AUTH:-true}
-      COOKIE_SECURE: ${COOKIE_SECURE:-true}
-      ADMIN_MFA_REQUIRED: ${ADMIN_MFA_REQUIRED:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ACCESS_TOKEN_EXPIRE_MINUTES_ADMIN: ${ACCESS_TOKEN_EXPIRE_MINUTES_ADMIN:-15}
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/hatecrime
     ports: []

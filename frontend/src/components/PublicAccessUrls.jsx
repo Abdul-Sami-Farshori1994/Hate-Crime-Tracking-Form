@@ -37,7 +37,7 @@ export default function PublicAccessUrls() {
     <SurfaceCard className="xl:col-span-2">
       <h3 className="text-base font-semibold text-slate-950">Shared entry links</h3>
       <p className="mt-1 text-sm text-slate-600">
-        Only people with these exact URLs can reach the sign-in pages. Passwords and MFA are still required after
+        Only people with these exact URLs can reach the sign-in pages. Passwords are still required after
         opening a link.
       </p>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">

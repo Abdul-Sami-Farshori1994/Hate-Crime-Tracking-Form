@@ -9,17 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import auth as auth_core
 import config as app_config
-import mfa as mfa_core
 from audit_log import record_audit
 from cookie_auth import (
     clear_mfa_cookies,
     clear_session_cookies,
-    decode_mfa_pending_token,
-    get_mfa_pending_token,
-    get_mfa_setup_token,
     get_refresh_token_from_request,
-    set_mfa_pending_cookie,
-    set_mfa_setup_cookie,
 )
 from database import get_db
 from ip_allowlist import assert_admin_ip_allowed
@@ -36,7 +30,7 @@ from refresh_store import (
     revoke_family,
     revoke_jti,
 )
-from schemas import LoginRequest, MfaCodeRequest, SessionResponse
+from schemas import LoginRequest, SessionResponse
 from session_issue import issue_user_session
 
 logger = logging.getLogger(__name__)
@@ -200,32 +194,14 @@ async def login_admin(
             wrong_role_detail="This login is for administrators only",
         )
 
-        if app_config.admin_mfa_required():
-            if not getattr(user, "mfa_enabled", False) or not user.mfa_secret_enc:
-                secret = mfa_core.generate_totp_secret()
-                setup_token = auth_core.create_mfa_setup_token(
-                    username=user.username,
-                    uid=user.id,
-                    setup_secret=secret,
-                )
-                set_mfa_setup_cookie(response, setup_token)
-                await db.commit()
-                return SessionResponse(
-                    role=UserRole.admin.value,
-                    username=user.username,
-                    mfa_setup_required=True,
-                    provisioning_uri=mfa_core.provisioning_uri(secret=secret, username=user.username),
-                )
-
-            pending = auth_core.create_mfa_pending_token(username=user.username, uid=user.id)
-            set_mfa_pending_cookie(response, pending)
-            await db.commit()
-            return SessionResponse(
-                role=UserRole.admin.value,
-                username=user.username,
-                mfa_required=True,
-            )
-
+        await _audit_login(
+            db,
+            request=request,
+            action="login_success",
+            login_kind="admin",
+            username=user.username,
+            user=user,
+        )
         await record_admin_login(db, user=user, request=request)
         session = await issue_user_session(db, response, user, role=UserRole.admin)
         await db.commit()
@@ -236,93 +212,6 @@ async def login_admin(
         _raise_service_unavailable(exc, log_message="Database error during admin login")
     except Exception as exc:
         _raise_service_unavailable(exc, log_message="Unexpected error during admin login")
-
-
-@router.post("/admin/mfa/verify", response_model=SessionResponse)
-async def verify_admin_mfa(
-    body: MfaCodeRequest,
-    request: Request,
-    response: Response,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _rate: None = auth_login_limit,
-) -> SessionResponse:
-    assert_admin_ip_allowed(request)
-    token = get_mfa_pending_token(request)
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="MFA session expired")
-
-    try:
-        payload = decode_mfa_pending_token(token)
-        if payload.get("typ") != "mfa_pending":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA session")
-        uid = int(payload["uid"])
-    except (JWTError, KeyError, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA session") from exc
-
-    user = await db.get(User, uid)
-    if user is None or not getattr(user, "mfa_enabled", False) or not user.mfa_secret_enc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="MFA not configured")
-
-    secret = mfa_core.decrypt_mfa_secret(user.mfa_secret_enc)
-    if not mfa_core.verify_totp(secret, body.code):
-        await _audit_login(
-            db,
-            request=request,
-            action="login_failed",
-            login_kind="admin",
-            username=user.username,
-            user=user,
-            detail={"reason": "invalid_mfa"},
-        )
-        await db.commit()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication code")
-
-    clear_mfa_cookies(response)
-    await record_admin_login(db, user=user, request=request)
-    session = await issue_user_session(db, response, user, role=UserRole.admin)
-    await db.commit()
-    return session
-
-
-@router.post("/admin/mfa/confirm", response_model=SessionResponse)
-async def confirm_admin_mfa_setup(
-    body: MfaCodeRequest,
-    request: Request,
-    response: Response,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _rate: None = auth_login_limit,
-) -> SessionResponse:
-    assert_admin_ip_allowed(request)
-    token = get_mfa_setup_token(request)
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="MFA setup session expired")
-
-    try:
-        payload = auth_core.decode_token(token)
-        if payload.get("typ") != "mfa_setup":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA setup session")
-        uid = int(payload["uid"])
-        setup_secret = str(payload.get("mfa_secret") or "")
-    except (JWTError, KeyError, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA setup session") from exc
-
-    if not setup_secret:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing MFA secret")
-
-    user = await db.get(User, uid)
-    if user is None or normalize_user_role(user.role) != UserRole.admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Admin account required")
-
-    if not mfa_core.verify_totp(setup_secret, body.code):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication code")
-
-    user.mfa_secret_enc = mfa_core.encrypt_mfa_secret(setup_secret)
-    user.mfa_enabled = True
-    clear_mfa_cookies(response)
-    await record_admin_login(db, user=user, request=request)
-    session = await issue_user_session(db, response, user, role=UserRole.admin)
-    await db.commit()
-    return session
 
 
 @router.post("/refresh", response_model=SessionResponse)

@@ -14,7 +14,6 @@ _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 _CSRF_EXEMPT_PREFIXES = (
     "/auth/login",
     "/auth/admin/login",
-    "/auth/admin/mfa/",
     "/auth/refresh",
     "/auth/logout",
     "/health",

@@ -1,4 +1,4 @@
-"""Phase 2 cookie session, refresh, and MFA tests."""
+"""Phase 2 cookie session and refresh tests."""
 
 import os
 
@@ -16,7 +16,6 @@ from main import app
 @pytest.fixture
 def cookie_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("USE_COOKIE_AUTH", "true")
-    monkeypatch.setenv("ADMIN_MFA_REQUIRED", "false")
     return TestClient(app)
 
 
@@ -34,10 +33,11 @@ def test_session_endpoint_with_cookie(cookie_client: TestClient):
     assert session.json()["username"] == "user"
 
 
-def test_admin_login_without_mfa_when_disabled(cookie_client: TestClient):
+def test_admin_login_issues_session(cookie_client: TestClient):
     response = cookie_client.post("/auth/admin/login", json={"username": "admin", "password": "admin"})
     assert response.status_code == 200
-    assert response.json().get("mfa_required") is not True
+    assert response.json()["role"] == "admin"
+    assert "hc_access" in response.cookies
 
 
 def test_refresh_rotates_cookie(cookie_client: TestClient):
@@ -54,11 +54,3 @@ def test_logout_clears_session(cookie_client: TestClient):
     assert out.status_code == 200
     session = cookie_client.get("/auth/session", cookies=cookies)
     assert session.status_code == 401
-
-
-def test_admin_mfa_required_flow(cookie_client: TestClient, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("ADMIN_MFA_REQUIRED", "true")
-    response = cookie_client.post("/auth/admin/login", json={"username": "admin", "password": "admin"})
-    assert response.status_code == 200
-    body = response.json()
-    assert body.get("mfa_setup_required") is True or body.get("mfa_required") is True

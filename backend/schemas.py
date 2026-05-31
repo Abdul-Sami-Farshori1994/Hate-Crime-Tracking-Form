@@ -16,13 +16,6 @@ class SessionResponse(BaseModel):
     role: str
     username: str
     access_token: str | None = None
-    mfa_required: bool = False
-    mfa_setup_required: bool = False
-    provisioning_uri: str | None = None
-
-
-class MfaCodeRequest(BaseModel):
-    code: str = Field(min_length=6, max_length=8)
 
 
 class TokenPayload(BaseModel):

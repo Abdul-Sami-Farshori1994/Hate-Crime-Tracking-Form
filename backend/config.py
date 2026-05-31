@@ -141,8 +141,8 @@ def mfa_pending_expire_minutes() -> int:
 
 
 def admin_mfa_required() -> bool:
-    default = "true" if is_production() else "false"
-    return os.getenv("ADMIN_MFA_REQUIRED", default).strip().lower() in ("1", "true", "yes")
+    """MFA removed — always disabled."""
+    return False
 
 
 def mfa_issuer_name() -> str:
